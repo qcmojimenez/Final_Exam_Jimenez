@@ -1,0 +1,101 @@
+- name: Installing nagios dependecies and libraries.
+  tags: dependecies, libraries
+  dnf:
+    name:
+      - gcc
+      - glibc
+      - glibc-common
+      - perl
+      - httpd
+      - php
+      - wget
+      - gd
+      - gd-devel
+      - openssl-devel
+      - gcc
+      - glibc
+      - glibc-common
+      - make
+      - gettext
+      - automake
+      - autoconf
+      - wget
+      - openssl-devel
+      - net-snmp
+      - net-snmp-utils
+      - python2-pip
+    state: latest
+
+- name: Install passlib python
+  tags: passlibpython
+  pip:
+    name: passlib
+
+- name: Creating nagios directory
+  tags: nagiosdirectory
+  file:
+    path: ~/nagios
+    state: directory
+
+- name: Downloading nagios
+  tags: dlnagios
+  unarchive:
+    src: https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.6.tar.gz
+    dest: ~/nagios
+    remote_src: yes
+    mode: 0777
+    owner: root
+    group: root
+
+- name: Setting up nagios
+  tags: nagiossetup
+  shell: |
+    cd ~/nagios/nagioscore-**
+    ./configure
+    make all
+    make install-groups-users
+    usermod -a -G nagios apache
+    make install
+    make install-daemoninit
+    make install-commandmode
+    make install-config
+    make install-webconf
+
+- name: Downloading nagios plugin
+  tags: nagiosplugin
+  unarchive:
+    src: https://github.com/nagios-plugins/nagios-plugins/archive/release-2.3.3.tar.gz
+    dest: ~/nagios
+    remote_src: yes
+    mode: 0777
+    owner: root
+    group: root
+
+- name: Setting up nagios plugin
+  tags: nagiospluginsetup
+  shell: |
+    cd ~/nagios/nagios-plugins*
+    ./tools/setup
+    ./configure
+    make
+    make install
+
+- name: Enable nagios
+  tags: enablenagios
+  service:
+    name: nagios
+    state: restarted
+    enabled: true
+
+- name: Enable httpd
+  tags: enablehttpd
+  service:
+    name: httpd
+    state: restarted
+    enabled: true
+
+- name: MOTD Banner
+  tags: banner
+  copy:
+    dest: /etc/motd
+    content: "Ansible Managed Node by qcmojimenez"
